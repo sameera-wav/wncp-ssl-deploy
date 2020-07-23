@@ -14,11 +14,13 @@ pipeline {
         PROJECT_FOLDER = "${PROJECT_FOLDER}"
     }
     stages {
-        stage("Checkout code") {
+        stage("Verify variables") {
             steps {
                 echo "CREDENTIALS_ID: ${params.CREDENTIALS_ID}; PROJECT_FOLDER: ${params.PROJECT_FOLDER}"
                 echo "CREDENTIALS_ID: ${CREDENTIALS_ID}; PROJECT_FOLDER: ${PROJECT_FOLDER}"
             }
+        }
+        stage("Checkout code") {
             steps {
                 echo "Start checkout"
                 checkout scm
