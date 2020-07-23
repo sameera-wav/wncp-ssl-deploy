@@ -15,8 +15,10 @@ pipeline {
     }
     stages {
         stage("Checkout code") {
-            echo "CREDENTIALS_ID: ${params.CREDENTIALS_ID}; PROJECT_FOLDER: ${params.PROJECT_FOLDER}"
-            echo "CREDENTIALS_ID: ${CREDENTIALS_ID}; PROJECT_FOLDER: ${PROJECT_FOLDER}"
+            steps {
+                echo "CREDENTIALS_ID: ${params.CREDENTIALS_ID}; PROJECT_FOLDER: ${params.PROJECT_FOLDER}"
+                echo "CREDENTIALS_ID: ${CREDENTIALS_ID}; PROJECT_FOLDER: ${PROJECT_FOLDER}"
+            }
             steps {
                 echo "Start checkout"
                 checkout scm
