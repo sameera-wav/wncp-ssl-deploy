@@ -12,6 +12,10 @@ pipeline {
     environment {
 		CREDENTIALS_ID = "${CREDENTIALS_ID}"
         PROJECT_FOLDER = "${PROJECT_FOLDER}"
+        PROJECT_ID = "${PROJECT_ID}"
+        CLUSTER_NAME = "${CLUSTER_NAME}"
+        LOCATION = "${LOCATION}"
+
     }
     stages {
         stage("Verify variables") {
@@ -26,35 +30,36 @@ pipeline {
                 checkout scm
             }
         }
-        /*
+        
         stage('Creating name space') {
             steps{
-                sh "ls ${projectfolder}/"
+                sh "ls ${PROJECT_FOLDER}/"
 
                 script {
-                    nameSpaceFolder = projectfolder + '/' + projectfolder+ '-namespace.yaml'
+                    nameSpaceFolder = PROJECT_FOLDER + '/' + PROJECT_FOLDER+ '-namespace.yaml'
                 }
 
-                echo "${projectfolder} ${projectid} ${clusterid} ${location}"
+                echo "${PROJECT_FOLDER} ${PROJECT_ID} ${CLUSTER_NAME} ${LOCATION}"
                 echo "nameSpaceFolder: ${nameSpaceFolder}"
                 
-                step([$class: 'KubernetesEngineBuilder', projectId: projectid, clusterName: clusterid, location: location, manifestPattern: nameSpaceFolder, credentialsId: env.CREDENTIALS_ID, verifyDeployments: true])
+                step([$class: 'KubernetesEngineBuilder', projectId: PROJECT_ID, clusterName: CLUSTER_NAME, location: LOCATION, manifestPattern: nameSpaceFolder, credentialsId: env.CREDENTIALS_ID, verifyDeployments: true])
 
             }
         }
+        /*
         stage('Applying all yaml to GKE') {
             steps{
-                echo "${projectfolder} ${projectid} ${clusterid} ${location}"
+                echo "${PROJECT_FOLDER} ${PROJECT_ID} ${CLUSTER_NAME} ${LOCATION}"
 
                 script {
-                    deplymentsYamlFolder = projectfolder + '/'
+                    deplymentsYamlFolder = PROJECT_FOLDER + '/'
                 }
 
                 echo "deplymentsYamlFolder : ${deplymentsYamlFolder}"
 
                 sh "ls ${deplymentsYamlFolder}"
-                //step([$class: 'KubernetesEngineBuilder', projectId: env.PROJECT_ID, clusterName: env.CLUSTER_NAME, location: env.LOCATION, manifestPattern: projectfolder, credentialsId: env.CREDENTIALS_ID, verifyDeployments: true])
-                step([$class: 'KubernetesEngineBuilder', projectId: projectid, clusterName: clusterid, location: location, manifestPattern: deplymentsYamlFolder, credentialsId: env.CREDENTIALS_ID, verifyDeployments: true])
+                //step([$class: 'KubernetesEngineBuilder', projectId: env.PROJECT_ID, clusterName: env.CLUSTER_NAME, location: env.LOCATION, manifestPattern: PROJECT_FOLDER, credentialsId: env.CREDENTIALS_ID, verifyDeployments: true])
+                step([$class: 'KubernetesEngineBuilder', projectId: PROJECT_ID, clusterName: CLUSTER_NAME, location: LOCATION, manifestPattern: deplymentsYamlFolder, credentialsId: env.CREDENTIALS_ID, verifyDeployments: true])
 
             }
         }
