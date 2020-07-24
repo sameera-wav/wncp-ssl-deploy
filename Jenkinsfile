@@ -1,68 +1,169 @@
-cplxStrng = "";
-nameSpaceFolder = "";
-deplymentsYamlFolder = ""
-
 pipeline {
-    //agent any //Use this for default
     agent{
-	    node{
-	    	label 'cd-jenkins'
-	    }
-    }
-    environment {
-		CREDENTIALS_ID = "${CREDENTIALS_ID}"
-        PROJECT_FOLDER = "${PROJECT_FOLDER}"
-        PROJECT_ID = "${PROJECT_ID}"
-        CLUSTER_NAME = "${CLUSTER_NAME}"
+        node{
+            label 'cd-jenkins'
+		}
+	}
+  parameters{
+      string (defaultValue: 'staging',description: '',name : 'ENV_TYPE')
+      string (defaultValue: 'wavenet',description: '',name : 'CUSTOMER_NAME')
+      string (defaultValue: 'us-central1-c',description: '',name : 'LOCATION')
+  }
+  environment {
+        PRODUCT_NAME= "${PRODUCT_NAME}"
+        VERSION = "${VERSION}"
         LOCATION = "${LOCATION}"
-
+        CLUSTER_NAME = "${CUSTOMER_NAME}-${ENV_TYPE}"
+        CUSTOMER_NAME = "${CUSTOMER_NAME}"
+        DNS_NAME = "${ENV_TYPE != "production" ? "${CUSTOMER_NAME}.${ENV_TYPE}.wavenetcloud.com" : "${CUSTOMER_NAME}.wavenetcloud.com"}"
+        DNS_ZONE_NAME = "${ENV_TYPE != "production" ? "${CUSTOMER_NAME}-${ENV_TYPE}-wavenetcloud-com" : "${CUSTOMER_NAME}-wavenetcloud-com"}"
     }
     stages {
-        stage("Verify variables") {
-            steps {
-                echo "CREDENTIALS_ID: ${params.CREDENTIALS_ID}; PROJECT_FOLDER: ${params.PROJECT_FOLDER}"
-                echo "CREDENTIALS_ID: ${CREDENTIALS_ID}; PROJECT_FOLDER: ${PROJECT_FOLDER}"
-            }
-        }
-        stage("Checkout code") {
-            steps {
-                echo "Start checkout"
-                checkout scm
-            }
-        }
         
-        stage('Creating name space') {
-            steps{
-                sh "ls ${PROJECT_FOLDER}/"
-
-                script {
-                    nameSpaceFolder = PROJECT_FOLDER + '/' + PROJECT_FOLDER+ '-namespace.yaml'
-                }
-
-                echo "${PROJECT_FOLDER} ${PROJECT_ID} ${CLUSTER_NAME} ${LOCATION}"
-                echo "nameSpaceFolder: ${nameSpaceFolder}"
-                
-                step([$class: 'KubernetesEngineBuilder', projectId: PROJECT_ID, clusterName: CLUSTER_NAME, location: LOCATION, manifestPattern: nameSpaceFolder, credentialsId: env.CREDENTIALS_ID, verifyDeployments: true])
-
+        stage("Checkout Deployment Scripts") {
+            steps {
+                git branch: 'feature/testing',
+                credentialsId: 'kajan-bitbucket',
+                url: "https://kajan-wn@bitbucket.org/global-wavenet/compose-deploy-yaml-files.git"
             }
         }
-        /*
-        stage('Applying all yaml to GKE') {
+
+        stage("Import Cluster Config"){
             steps{
-                echo "${PROJECT_FOLDER} ${PROJECT_ID} ${CLUSTER_NAME} ${LOCATION}"
-
-                script {
-                    deplymentsYamlFolder = PROJECT_FOLDER + '/'
-                }
-
-                echo "deplymentsYamlFolder : ${deplymentsYamlFolder}"
-
-                sh "ls ${deplymentsYamlFolder}"
-                //step([$class: 'KubernetesEngineBuilder', projectId: env.PROJECT_ID, clusterName: env.CLUSTER_NAME, location: env.LOCATION, manifestPattern: PROJECT_FOLDER, credentialsId: env.CREDENTIALS_ID, verifyDeployments: true])
-                step([$class: 'KubernetesEngineBuilder', projectId: PROJECT_ID, clusterName: CLUSTER_NAME, location: LOCATION, manifestPattern: deplymentsYamlFolder, credentialsId: env.CREDENTIALS_ID, verifyDeployments: true])
-
+                echo "Import kubeconfig entry for ${CLUSTER_NAME} -START"
+                sh "gcloud container clusters get-credentials ${CLUSTER_NAME} --zone=${LOCATION}"
+                echo "Import kubeconfig entry for ${CLUSTER_NAME} -END"
             }
         }
-        */
-    }    
+
+        stage("Prepare Deployment Scripts") {
+            steps {
+                echo "Replacing secret_name variable with a value in secret.yaml -START"
+                    contentReplace(
+                        configs: [
+                            variablesReplaceConfig(
+                                configs: [
+                                    variablesReplaceItemConfig(
+                                        name: 'SECRET_NAME',
+                                        value: "$PRODUCT_NAME"
+                                    )
+                                ],
+                                fileEncoding: 'UTF-8',
+                                filePath: "secret.yaml",
+                                variablesPrefix: '$',
+                                variablesSuffix: ''
+                                )]
+                    )
+                echo "Replacing secret_name variable with a value in secret.yaml -END"
+                echo "Replacing secret_name variable with a value in deployments.yaml -START"
+                    contentReplace(
+                        configs: [
+                            variablesReplaceConfig(
+                                configs: [
+                                    variablesReplaceItemConfig(
+                                        name: 'SECRET_NAME',
+                                        value: "$PRODUCT_NAME"
+                                    )
+                                ],
+                                fileEncoding: 'UTF-8',
+                                filePath: "${PRODUCT_NAME}/${VERSION}/cloud-services/cloud-services.yaml",
+                                variablesPrefix: '$',
+                                variablesSuffix: ''
+                                )]
+                    )
+                    contentReplace(
+                        configs: [
+                            variablesReplaceConfig(
+                                configs: [
+                                    variablesReplaceItemConfig(
+                                        name: 'SECRET_NAME',
+                                        value: "$PRODUCT_NAME"
+                                    )
+                                ],
+                                fileEncoding: 'UTF-8',
+                                filePath: "${PRODUCT_NAME}/${VERSION}/deployments/deployments.yaml",
+                                variablesPrefix: '$',
+                                variablesSuffix: ''
+                                )]
+                    )
+                echo "Replace secret_name variable with a value in deployments.yaml -END"
+                echo "Replacing DNS in Services -START"
+                    contentReplace(
+                        configs: [
+                            variablesReplaceConfig(
+                                configs: [
+                                    variablesReplaceItemConfig(
+                                        name: 'DNS_NAME',
+                                        value: "$DNS_NAME"
+                                    )
+                                ],
+                                fileEncoding: 'UTF-8',
+                                filePath: "${PRODUCT_NAME}/${VERSION}/deployments/deployments.yaml",
+                                variablesPrefix: '$',
+                                variablesSuffix: ''
+                                )]
+                    )
+                    contentReplace(
+                        configs: [
+                            variablesReplaceConfig(
+                                configs: [
+                                    variablesReplaceItemConfig(
+                                        name: 'DNS_NAME',
+                                        value: "$DNS_NAME"
+                                    )
+                                ],
+                                fileEncoding: 'UTF-8',
+                                filePath: "${PRODUCT_NAME}/${VERSION}/services/services.yaml",
+                                variablesPrefix: '$',
+                                variablesSuffix: ''
+                                )]
+                    )
+                echo "Replacing DNS in Services -END"
+            }
+        }
+
+        stage("Apply Secrets"){
+            steps{
+                echo "Apply Secrets to GKE -START"
+                sh 'kubectl apply -f secret.yaml'
+                echo "Apply Secrets to GKE -END"
+            }
+        }
+
+        stage('Deploy Cloud Services') {
+            steps{
+                echo "Deploy Cloud Services to GKE -START"
+                sh 'set +e; kubectl apply -f ${PRODUCT_NAME}/${VERSION}/cloud-services/cloud-services.yaml; set -e;'
+                echo "Deploy Cloud Services to GKE -END"
+            }
+        }
+
+        stage('Verify Cloud Services') {
+            steps{
+                sh 'set +e; cd ${PRODUCT_NAME}/${VERSION}/cloud-services; chmod +x ./verify.sh; ./verify.sh; set -e;'
+            }
+        }
+
+        stage('Deploy Services') {
+            steps{
+                echo "Deploy Services to GKE -START"
+                sh 'kubectl apply -f ${PRODUCT_NAME}/${VERSION}/services/services.yaml'
+                echo "Deploy Services to GKE -END"
+            }
+        }
+
+        stage('Apply Deployments') {
+            steps{
+                echo "Apply Deployments to GKE -START"
+                sh 'kubectl apply -f ${PRODUCT_NAME}/${VERSION}/deployments/deployments.yaml'
+                echo "Apply Deployments to GKE -END"
+            }
+        }
+
+        stage('Verify Deployments') {
+            steps{
+                sh 'set +e; cd ${PRODUCT_NAME}/${VERSION}/verification; chmod +x ./verify.sh; ./verify.sh; set -e;'
+            }
+        }
+    }
 }
