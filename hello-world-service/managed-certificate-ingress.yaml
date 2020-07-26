@@ -2,9 +2,9 @@
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  name: gke-goglides-ingress
+  name: gke-test-cluster-ingress
   annotations:
-    # kubernetes.io/ingress.global-static-ip-name: gke-goglides-static-ip
+    # kubernetes.io/ingress.global-static-ip-name: gke-test-cluster-static-ip
     networking.gke.io/managed-certificates: gke-test-cluster-certificate
 spec:
   backend:

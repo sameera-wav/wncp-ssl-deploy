@@ -1,0 +1,1 @@
+kubectl describe managedcertificate gke-test-cluster-certificate

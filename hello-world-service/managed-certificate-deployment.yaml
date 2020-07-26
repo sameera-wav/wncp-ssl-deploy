@@ -3,17 +3,17 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    run: gke-goglides
+    run: gke-test-cluster
   name: hello-world
 spec:
   selector:
     matchLabels:
-      run: gke-goglides
+      run: gke-test-cluster
   replicas: 1
   template:
     metadata:
       labels:
-        run: gke-goglides
+        run: gke-test-cluster
     spec:
       containers:
       - name: hello-world
