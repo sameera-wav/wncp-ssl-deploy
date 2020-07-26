@@ -1,0 +1,23 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    run: gke-goglides
+  name: hello-world
+spec:
+  selector:
+    matchLabels:
+      run: gke-goglides
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        run: gke-goglides
+    spec:
+      containers:
+      - name: hello-world
+        image: nginx:1.15.8
+        ports:
+        - containerPort: 80
+          protocol: TCP

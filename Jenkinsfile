@@ -6,12 +6,12 @@ pipeline {
 	}
   parameters{
       string (defaultValue: 'staging',description: '',name : 'ENV_TYPE')
-      string (defaultValue: 'wavenet',description: '',name : 'CUSTOMER_NAME')
+      string (defaultValue: 'test-cluster',description: '',name : 'CUSTOMER_NAME')
       string (defaultValue: 'us-central1-c',description: '',name : 'LOCATION')
   }
   environment {
-        PRODUCT_NAME= "${PRODUCT_NAME}"
-        VERSION = "${VERSION}"
+        //PRODUCT_NAME= "${PRODUCT_NAME}"
+        //VERSION = "${VERSION}"
         LOCATION = "${LOCATION}"
         CLUSTER_NAME = "${CUSTOMER_NAME}-${ENV_TYPE}"
         CUSTOMER_NAME = "${CUSTOMER_NAME}"
@@ -19,7 +19,7 @@ pipeline {
         DNS_ZONE_NAME = "${ENV_TYPE != "production" ? "${CUSTOMER_NAME}-${ENV_TYPE}-wavenetcloud-com" : "${CUSTOMER_NAME}-wavenetcloud-com"}"
     }
     stages {
-        
+        /*
         stage("Checkout Deployment Scripts") {
             steps {
                 git branch: 'feature/testing',
@@ -27,7 +27,7 @@ pipeline {
                 url: "https://kajan-wn@bitbucket.org/global-wavenet/compose-deploy-yaml-files.git"
             }
         }
-
+        */
         stage("Import Cluster Config"){
             steps{
                 echo "Import kubeconfig entry for ${CLUSTER_NAME} -START"
@@ -36,6 +36,41 @@ pipeline {
             }
         }
 
+        ///////////////
+        stage('Deploy Managed Certificate') {
+            steps{
+                echo "Deploy Managed Certificate to GKE -START"
+                sh 'kubectl apply -f hello-world-service/managed-certificate.yaml;'
+                echo "Deploy Managed Certificate to GKE -END"
+            }
+        }
+
+        stage('Deploy Services') {
+            steps{
+                echo "Deploy Cloud Services to GKE -START"
+                sh 'kubectl apply -f hello-world-service/managed-certificate-svc.yaml'
+                echo "Deploy Cloud Services to GKE -END"
+            }
+        }
+
+        stage('Apply Deployments') {
+            steps{
+                echo "Apply Deployments to GKE -START"
+                sh 'kubectl apply -f hello-world-service/managed-certificate-deployment.yaml'
+                echo "Apply Deployments to GKE -END"
+            }
+        }
+
+        stage('Apply Ingress') {
+            steps{
+                echo "Apply Deployments to GKE -START"
+                sh 'kubectl apply -f hello-world-service/managed-certificate-ingress.yaml'
+                echo "Apply Deployments to GKE -END"
+            }
+        }
+        //////////////
+
+        /*
         stage("Prepare Deployment Scripts") {
             steps {
                 echo "Replacing secret_name variable with a value in secret.yaml -START"
@@ -165,5 +200,6 @@ pipeline {
                 sh 'set +e; cd ${PRODUCT_NAME}/${VERSION}/verification; chmod +x ./verify.sh; ./verify.sh; set -e;'
             }
         }
+        */
     }
 }
